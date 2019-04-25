@@ -4,11 +4,11 @@
 */
 // Constantes
 #define sensores 6
-#define relevadores 6
+#define relevadores 8
 
 // Pines
 int sensor_flujo[sensores] = { 2,  3, 18, 19, 20, 21};
-int relevador[relevadores] = { 4,  5,  6,  7,  8,  9};
+int relevador[relevadores] = { 4,  5,  6,  7,  8,  9, 10, 11};
 
 // Limites de cada sensor
 float gasto_minimo[sensores] = {
@@ -16,6 +16,7 @@ float gasto_minimo[sensores] = {
 };
 
 // Variables
+
 volatile int frecuencia[sensores];       // Pulsos obtenidos del sensor
 float gasto[sensores];           // Litros por minuto
 unsigned long tiempo_actual;
@@ -69,6 +70,7 @@ void setup() {
   // Se inicializan los pines que controlaran los relevadores
   for (int i = 0; i < relevadores; i++){
     pinMode(relevador[i], OUTPUT);
+    cerrar_valvula(i, false);
   }
   
   tiempo_actual = millis();
@@ -89,8 +91,9 @@ void loop() {
     // Calcula el gasto por cada sensor
     for(int i = 0; i < sensores; i++){
       gasto[i] = float(frecuencia[i]) / 7.5;
-      
+      Serial.println("Sensor: " + String(i+1)+ " | Hz: " + frecuencia[i]+ " | " + String(gasto[i]) + " L/min");
       // Si necesario, cerrar electrovalvulas
+      /*
       if (gasto[i] <= gasto_minimo[i] || gasto[i] >= 30){
         cerrar_valvula(i, true);
         Serial.println("Valvula " + String(i+1) + " cerrada.");
@@ -99,7 +102,8 @@ void loop() {
         Serial.println("Sensor: " + String(i+1)+ " | Hz: " + frecuencia[i]+ " | " + String(gasto[i]) + " L/min");
         data += i == sensores-1 ? String(gasto[i]) : String(gasto[i]) + ",";
         frecuencia[i] = 0;
-      }
+      }*/
+      frecuencia[i] = 0;
     }
     
     // Serial.println(data);
@@ -109,5 +113,5 @@ void loop() {
 
 void cerrar_valvula(int id, boolean cerrar){
   // Si se quiere abrir enviar LOW sino HIGH
-  cerrar ? digitalWrite(relevador[id], HIGH) : digitalWrite(relevador[id], LOW);
+  cerrar ? digitalWrite(relevador[id], LOW) : digitalWrite(relevador[id], HIGH);
 }

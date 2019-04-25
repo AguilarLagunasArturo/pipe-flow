@@ -1,8 +1,10 @@
 #include <SPI.h>
 #include <WiFiNINA.h>
+#define ssid "INFINITUM9267_2.4"
+#define pass "NJx78nFcGJ"
 
-#define ssid "INFINITUM2372_2.4"
-#define pass "uH0L0Ybioa"
+//#define ssid "INFINITUM2372_2.4"
+//#define pass "uH0L0Ybioa"
 int keyIndex  = 0;
 
 int status = WL_IDLE_STATUS;
@@ -42,7 +44,7 @@ void print_wifi_status() {
   long rssi = WiFi.RSSI();
   Serial.print("Signal strength (RSSI):");
   Serial.print(rssi);
-  Serial.println(" dBm");
+  Serial.println("dBm");
 
   // print where to go in a browser:
   Serial.print("To see this page: http://");

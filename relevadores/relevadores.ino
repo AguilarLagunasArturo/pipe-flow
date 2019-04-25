@@ -1,6 +1,7 @@
-#define relevadores 2
-int relevador[relevadores] = {4, 5};
-boolean high = false;
+#define relevadores 7
+int relevador[relevadores] = { 5,  6,  7,  9, 10, 11};
+boolean high = true;
+int i = 0;
 
 void setup() {
   Serial.begin(9600);
@@ -12,14 +13,15 @@ void setup() {
 void loop() {
   delay(2000);
   if (high){
-    digitalWrite(relevador[0], LOW);
-    digitalWrite(relevador[1], LOW);
+    digitalWrite(relevador[i], LOW);
     Serial.println("open");
-    high = false;
   }else{
-    digitalWrite(relevador[0], HIGH);
-    digitalWrite(relevador[1], HIGH);
+    digitalWrite(relevador[i], HIGH);
     Serial.println("close");
-    high = true;
+  }
+  i++;
+  if (i ==7) {
+    i = 0;
+    high = !high;
   }
 }
