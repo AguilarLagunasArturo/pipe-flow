@@ -26,13 +26,13 @@ float problema_en_seccion[relevadores] = {
 
 // Valvulas abiertas.
 boolean valvula_cerrada[relevadores] = {
-  true, true, true, true,
-  true, true, true, true
+  false, false, false, false,
+  false, false, false, false
 };
 
 // Variables
 volatile int frecuencia[sensores];       // Pulsos obtenidos del sensor
-float gasto[sensores];           // Litros por minuto
+float gasto[sensores];                   // Litros por minuto
 unsigned long tiempo_actual;
 unsigned long tiempo_auxiliar;
 
@@ -94,9 +94,9 @@ void setup() {
   }
 
   // Se esperan 15s para que el agua fluya por la tuberia.
-  for (int i = 0; i < 5; i++) {
+  for (int i = 0; i < 15; i++) {
     delay(1000);
-    Serial.println("Esperando " + String(4 - i) + "...");
+    Serial.println("Esperando " + String(15 - i) + "...");
   }
 
   // Se inicializa el servidor web
@@ -106,6 +106,10 @@ void setup() {
   //asignar_gasto_minimo();
   tiempo_actual = millis();
   tiempo_auxiliar = tiempo_actual;
+  
+  for (int i = 0; i < sensores; i++) {
+    frecuencia[i] = 0;
+  }
 }
 
 void loop() {
@@ -116,9 +120,9 @@ void loop() {
     // Se calcula el gasto obtenido en por sensor
     calcular_gasto();
     // Se revisan que no haya problema en ninguna seccion
-    revisar_secciones();
+    // revisar_secciones();
     // Se reparan los problemas en cada seccion
-    resolver_problemas();
+    // resolver_problemas();
 
     tiempo_auxiliar = tiempo_actual; // <-- Antes estaba al inicio del if
   }
@@ -146,8 +150,9 @@ void revisar_secciones() {
       Serial.println("Problema en seccion " + String(i + 1));
     }
   }
-  // Condicion para seccion 8: gasto en 4 entre +- gasto en 7, gasto en 5 entre +- gasto en 7
-  if (((gasto[4] > (gasto[6] - 1)) && (gasto[4] < (gasto[6] + 1))) || (((gasto[5] > (gasto[6] - 1)) && (gasto[5] < (gasto[7] + 1))))) {
+  // Condicion para seccion 8: gasto en 4 entre +- gasto en 5, gasto en 5 entre +- gasto en 4
+
+  if (!((gasto[2]/2 > (gasto[4] - 2)) && (gasto[2]/2 < (gasto[4] + 2)))) {
     problema_en_seccion[7] = true;
   }
 }
@@ -166,7 +171,8 @@ void resolver_problemas() {
     cerrar_valvula(5, true);
   }
   if (problema_en_seccion[4]) {
-    cerrar_valvula(4, true);
+    cerrar_valvula(3, true);
+    //cerrar_valvula(4, true);
   }
   if (problema_en_seccion[5]) {
     cerrar_valvula(6, true);
@@ -176,6 +182,7 @@ void resolver_problemas() {
   }
   if (problema_en_seccion[7]) {
     cerrar_valvula(3, true);
+    //cerrar_valvula(4, true);
   }
   //delay(5000);
   //asignar_gasto_minimo();
@@ -188,19 +195,30 @@ void reset() {
     cerrar_valvula(i, false);
     if (i < sensores) frecuencia[i] = 0;
   }
+  delay(5000);
   tiempo_actual = millis();
   tiempo_auxiliar = 0;
 }
 
 void cerrar_valvula(int id, boolean cerrar) {
-  // Si se quiere cerrar enviar HIGH sino LOW
-  if (cerrar) {
-    digitalWrite(relevador[id], LOW);
-    valvula_cerrada[id] = false;
-    Serial.println("Valvula " + String(id + 1) + " cerrada.");
-  } else {
+  int cerrados = 0;
+
+  for (int i = 0; i < sensores; i++) {
+    if (valvula_cerrada[i]) cerrados ++;
+  }
+
+  if (cerrados < 1) {
+    // Si se quiere cerrar enviar HIGH sino LOW
+    if (cerrar) {
+      digitalWrite(relevador[id], LOW);
+      valvula_cerrada[id] = true;
+      Serial.println("Valvula " + String(id + 1) + " cerrada.");
+    }
+  }
+
+  if (!cerrar) {
     digitalWrite(relevador[id], HIGH);
-    valvula_cerrada[id] = true;
+    valvula_cerrada[id] = false;
     Serial.println("Valvula " + String(id + 1) + " abierta.");
   }
 }
@@ -243,7 +261,7 @@ void web_page() {
           client.println("Content-Type: text/html");
           client.println("Connection: close");  // the connection will be closed after completion of the response
           client.println();
-          client.println("<!DOCTYPE HTML><html> <head> <title>Control de Flujo</title> </head> <style> button{ width: 35%; height: 40px; margin: 5px; border-radius: 5px; border: none; font-size: 16px; background-color: #C9D9E6; color: #182526; } body{ background-color: #FFF; margin: 0px; margin-top: 80px; padding: 0px; } h2, h4 { color: #FFF; margin: 15px; } hr{ width: 70%; display: block; height: 1px; border: 0; border-top: 1px solid #ccc; } ul { position: fixed; top: 0; list-style-type: none; margin: 0; padding: 0; overflow: hidden;] } li { float: left; } li, a{ color: white; padding: 24px 16px; text-align: center; text-decoration: none; } li a:hover { background-color: #4a727a; } span{ font-size: 16px; padding-right: 15%; font-weight: bold; color: white; } .title{ font-weight: bold; font-size: 24px; color: white; margin-left: 25%; } .link{ font-size: 24px; color: white; float: right; padding-right: 0px; margin-right: 25%; } .header{ width: 100%; background-color: #54878C; } .footer{ bottom: 0; padding-top: 5px; padding-bottom: 5px; margin-top: 50px; width: 100%; background-color: #4B787D; text-align: right; } @media (min-width:320px) { /* smartphones, portrait iPhone, portrait 480x320 phones (Android) */ button{ width: 70%; height: 100px; font-size: 40px; margin: 30px; } body{ background-color: #FFF; margin: 0px; margin-top: 300px; padding: 0px; } li, a{ padding: 100px 16px; } .title{ font-size: 46px; margin-left: 5%; } .link{ font-size: 46px; margin-right: 5%; } span{ font-size: 26px; padding-right: 5%; } } @media (min-width:992px) { /* smartphones, portrait iPhone, portrait 480x320 phones (Android) */ button{ width: 35%; height: 40px; margin: 5px; border-radius: 5px; border: none; font-size: 16px; } body{ background-color: #FFF; margin: 0px; margin-top: 80px; padding: 0px; } li, a{ color: white; padding: 24px 16px; text-align: center; text-decoration: none; } span{ font-size: 16px; padding-right: 15%; font-weight: bold; color: white; } .title{ font-weight: bold; font-size: 24px; color: white; margin-left: 25%; } .link{ font-size: 24px; color: white; float: right; padding-right: 0px; margin-right: 25%; } } </style> <body> <ul class='header'> <li class='title'>Control de flujo</li> <li class='link'><a href='https://github.com/AguilarLagunasArturo/pipe-flow'>Sobre el proyecto</a></li> </ul> <center> <br> <button class='S1_1' type='submit' onmousedown=location.href='/S1_1\'>Abrir secci&oacute;n 1</button> <button class='S1_0' type='submit' onmousedown=location.href='/S1_0\'>Cerrar secci&oacute;n 1</button><hr> <button class='S2_1' type='submit' onmousedown=location.href='/S2_1\'>Abrir secci&oacute;n 2</button> <button class='S2_0' type='submit' onmousedown=location.href='/S2_0\'>Cerrar secci&oacute;n 2</button><hr> <button class='S3_1' type='submit' onmousedown=location.href='/S3_1\'>Abrir secci&oacute;n 3</button> <button class='S3_0' type='submit' onmousedown=location.href='/S3_0\'>Cerrar secci&oacute;n 3</button><hr> <button class='S4_1' type='submit' onmousedown=location.href='/S4_1\'>Abrir secci&oacute;n 4</button> <button class='S4_0' type='submit' onmousedown=location.href='/S4_0\'>Cerrar secci&oacute;n 4</button><hr> <button class='S5_0' type='submit' onmousedown=location.href='/S5_0\'>Cerrar secci&oacute;n 5</button> <button class='S5_1' type='submit' onmousedown=location.href='/S5_1\'>Abrir secci&oacute;n5</button><hr> <button class='S6_0' type='submit' onmousedown=location.href='/S6_0\'>Cerrar secci&oacute;n 6</button> <button class='S6_1' type='submit' onmousedown=location.href='/S6_1\'>Abrir secci&oacute;n6</button><hr> <button class='S7_1' type='submit' onmousedown=location.href='/S7_1\'>Abrir secci&oacute;n 7</button> <button class='S7_0' type='submit' onmousedown=location.href='/S7_0\'>Cerrar secci&oacute;n 7</button><hr> <button class='S8_1' type='submit' onmousedown=location.href='/S8_1\'>Abrir secci&oacute;n 8</button> <button class='S8_0' type='submit' onmousedown=location.href='/S8_0\'>Cerrar secci&oacute;n 8</button><hr> <button class='R' type='submit' onmousedown=location.href='/R\'>Reiniciar sistema</button> <div class='footer'> <span>Sistema de tuber&iacute;as automatizado</span> </div> </center> </body></html>");
+          client.println("<!DOCTYPE HTML><html> <head> <title>Control de Flujo</title> </head> <style> button{ width: 35%; height: 40px; margin: 5px; border-radius: 5px; border: none; font-size: 16px; background-color: #C9D9E6; color: #182526; } body{ background-color: #FFF; margin: 0px; margin-top: 80px; padding: 0px; } h2, h4 { color: #FFF; margin: 15px; } hr{ width: 70%; display: block; height: 1px; border: 0; border-top: 1px solid #ccc; } ul { position: fixed; top: 0; list-style-type: none; margin: 0; padding: 0; overflow: hidden;] } li { float: left; } li, a{ color: white; padding: 24px 16px; text-align: center; text-decoration: none; } li a:hover { background-color: #4a727a; } span{ font-size: 16px; padding-right: 15%; font-weight: bold; color: white; } .title{ font-weight: bold; font-size: 24px; color: white; margin-left: 25%; } .link{ font-size: 24px; color: white; float: right; padding-right: 0px; margin-right: 25%; } .header{ width: 100%; background-color: #54878C; } .footer{ bottom: 0; padding-top: 5px; padding-bottom: 5px; margin-top: 50px; width: 100%; background-color: #4B787D; text-align: right; } @media (min-width:320px) { /* smartphones, portrait iPhone, portrait 480x320 phones (Android) */ button{ width: 70%; height: 100px; font-size: 40px; margin: 30px; } body{ background-color: #FFF; margin: 0px; margin-top: 300px; padding: 0px; } li, a{ padding: 100px 16px; } .title{ font-size: 46px; margin-left: 5%; } .link{ font-size: 46px; margin-right: 5%; } span{ font-size: 26px; padding-right: 5%; } } @media (min-width:992px) { /* smartphones, portrait iPhone, portrait 480x320 phones (Android) */ button{ width: 35%; height: 40px; margin: 5px; border-radius: 5px; border: none; font-size: 16px; } body{ background-color: #FFF; margin: 0px; margin-top: 80px; padding: 0px; } li, a{ color: white; padding: 24px 16px; text-align: center; text-decoration: none; } span{ font-size: 16px; padding-right: 15%; font-weight: bold; color: white; } .title{ font-weight: bold; font-size: 24px; color: white; margin-left: 25%; } .link{ font-size: 24px; color: white; float: right; padding-right: 0px; margin-right: 25%; } } </style> <body> <ul class='header'> <li class='title'>Control de flujo</li> <li class='link'><a href='https://github.com/AguilarLagunasArturo/pipe-flow'>Sobre el proyecto</a></li> </ul> <center> <br> <button class='S1_1' type='submit' onmousedown=location.href='/S1_1\'>Abrir secci&oacute;n 1</button> <button class='S1_0' type='submit' onmousedown=location.href='/S1_0\'>Cerrar secci&oacute;n 1</button><hr> <button class='S2_1' type='submit' onmousedown=location.href='/S2_1\'>Abrir secci&oacute;n 2</button> <button class='S2_0' type='submit' onmousedown=location.href='/S2_0\'>Cerrar secci&oacute;n 2</button><hr> <button class='S3_1' type='submit' onmousedown=location.href='/S3_1\'>Abrir secci&oacute;n 3</button> <button class='S3_0' type='submit' onmousedown=location.href='/S3_0\'>Cerrar secci&oacute;n 3</button><hr> <button class='S4_1' type='submit' onmousedown=location.href='/S4_1\'>Abrir secci&oacute;n 4</button> <button class='S4_0' type='submit' onmousedown=location.href='/S4_0\'>Cerrar secci&oacute;n 4</button><hr> <button class='S5_1' type='submit' onmousedown=location.href='/S5_1\'>Abrir secci&oacute;n 5</button> <button class='S5_0' type='submit' onmousedown=location.href='/S5_0\'>Cerrar secci&oacute;n 5</button> <hr> <button class='S6_1' type='submit' onmousedown=location.href='/S6_1\'>Abrir secci&oacute;n 6</button> <button class='S6_0' type='submit' onmousedown=location.href='/S6_0\'>Cerrar secci&oacute;n 6</button>  <hr> <button class='S7_1' type='submit' onmousedown=location.href='/S7_1\'>Abrir secci&oacute;n 7</button> <button class='S7_0' type='submit' onmousedown=location.href='/S7_0\'>Cerrar secci&oacute;n 7</button><hr> <button class='S8_1' type='submit' onmousedown=location.href='/S8_1\'>Abrir secci&oacute;n 8</button> <button class='S8_0' type='submit' onmousedown=location.href='/S8_0\'>Cerrar secci&oacute;n 8</button><hr> <button class='R' type='submit' onmousedown=location.href='/R\'>Reiniciar sistema</button> <div class='footer'> <span>Sistema de tuber&iacute;as automatizado</span> </div> </center> </body></html>");
           //client.println("<meta http-equiv='refresh' content='30'/>");
           break;
         }

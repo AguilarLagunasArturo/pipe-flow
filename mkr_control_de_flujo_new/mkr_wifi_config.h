@@ -1,10 +1,10 @@
 #include <SPI.h>
 #include <WiFiNINA.h>
-//#define ssid "INFINITUM9267_2.4"
-//#define pass "NJx78nFcGJ"
+#define ssid "INFINITUM9267_2.4"
+#define pass "NJx78nFcGJ"
 
-#define ssid "INFINITUM2372_2.4"
-#define pass "uH0L0Ybioa"
+//#define ssid "INFINITUM2372_2.4"
+//#define pass "uH0L0Ybioa"
 int keyIndex  = 0;
 
 int status = WL_IDLE_STATUS;
