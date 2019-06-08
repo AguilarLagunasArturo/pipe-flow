@@ -15,7 +15,8 @@ int relevador[relevadores] = { 2,  3,  10, 11, 12, 13, 14, 16};
 
 // Limites de cada sensor.
 float gasto_minimo[sensores] = {
-  14, 5, 5, 2, 2, 8, 7
+  13, 5, 5, 2, 2, 7, 6
+  // 14, 5, 5, 2, 2, 8, 7
 };
 
 // Estado de secciones.
@@ -35,6 +36,8 @@ volatile int frecuencia[sensores];       // Pulsos obtenidos del sensor
 float gasto[sensores];                   // Litros por minuto
 unsigned long tiempo_actual;
 unsigned long tiempo_auxiliar;
+
+String command = "";
 
 String data = "";                              // Datos a graficar
 
@@ -93,41 +96,37 @@ void setup() {
     cerrar_valvula(i, false);
   }
 
-  // Se esperan 15s para que el agua fluya por la tuberia.
-  for (int i = 0; i < 15; i++) {
-    delay(1000);
-    Serial.println("Esperando " + String(15 - i) + "...");
-  }
+  checar_relevadores();
 
   // Se inicializa el servidor web
-  wifi_setup();
-  print_wifi_status();
+  //wifi_setup();
+  //print_wifi_status();
 
   //asignar_gasto_minimo();
   tiempo_actual = millis();
   tiempo_auxiliar = tiempo_actual;
-  
+
   for (int i = 0; i < sensores; i++) {
     frecuencia[i] = 0;
   }
 }
 
 void loop() {
+  leer_serial();
   tiempo_actual = millis();
-
   // Calcula el flujo (L/min) cada segundo
   if (tiempo_actual >= (tiempo_auxiliar + 1000)) {
     // Se calcula el gasto obtenido en por sensor
     calcular_gasto();
     // Se revisan que no haya problema en ninguna seccion
-    // revisar_secciones();
+    //revisar_secciones();
     // Se reparan los problemas en cada seccion
-    // resolver_problemas();
+    //resolver_problemas();
 
     tiempo_auxiliar = tiempo_actual; // <-- Antes estaba al inicio del if
   }
   // Se crea pagina web
-  web_page();
+  //web_page();
 }
 
 // Funciones para el control de flujo
@@ -152,7 +151,7 @@ void revisar_secciones() {
   }
   // Condicion para seccion 8: gasto en 4 entre +- gasto en 5, gasto en 5 entre +- gasto en 4
 
-  if (!((gasto[2]/2 > (gasto[4] - 2)) && (gasto[2]/2 < (gasto[4] + 2)))) {
+  if (!((gasto[2] / 2 > (gasto[4] - 2)) && (gasto[2] / 2 < (gasto[4] + 2)))) {
     problema_en_seccion[7] = true;
   }
 }
@@ -238,6 +237,36 @@ void asignar_gasto_minimo() {
     frecuencia[i] = 0;
   }
   Serial.println("---------------------------");
+}
+
+void checar_relevadores() {
+  for (int i = 0; i < relevadores; i++) {
+    delay(2000);
+    Serial.println("Relevador " + String(i + 1));
+    cerrar_valvula(i, true); // cerrar
+    delay(2000);
+    cerrar_valvula(i, false); // abrir
+  }
+}
+
+void esperar(int t) {
+  // Se esperan 15s para que el agua fluya por la tuberia.
+  for (int i = 0; i < t; i++) {
+    delay(1000);
+    Serial.println("Esperando " + String(t - i) + "...");
+  }
+}
+
+void leer_serial() {
+  if (Serial.available() > 0) {
+    // Lee los byte
+    //serial_byte = Serial.read();
+    command = Serial.readString();
+    command.trim();
+    // Imprime resultado
+    //Serial.println(serial_byte, DEC);
+    if(command == "r") {reset();};
+  }
 }
 
 void web_page() {
