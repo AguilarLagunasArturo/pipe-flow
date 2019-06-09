@@ -97,6 +97,7 @@ void setup() {
   }
 
   checar_relevadores();
+  esperar(8);
 
   // Se inicializa el servidor web
   //wifi_setup();
@@ -119,9 +120,9 @@ void loop() {
     // Se calcula el gasto obtenido en por sensor
     calcular_gasto();
     // Se revisan que no haya problema en ninguna seccion
-    //revisar_secciones();
+    revisar_secciones();
     // Se reparan los problemas en cada seccion
-    //resolver_problemas();
+    resolver_problemas();
 
     tiempo_auxiliar = tiempo_actual; // <-- Antes estaba al inicio del if
   }
@@ -134,11 +135,11 @@ void calcular_gasto() {
   for (int i = 0; i < sensores; i++) {
     gasto[i] = float(frecuencia[i]) / 7.5;
     // Imprime con formato: Seccion | Hz | L/min
-    Serial.println("Sensor: " + String(i + 1) + " | Hz: " + frecuencia[i] + " | " + String(gasto[i]) + " L/min");
+    // Serial.println("Sensor: " + String(i + 1) + " | Hz: " + frecuencia[i] + " | " + String(gasto[i]) + " L/min");
     data += i == sensores - 1 ? String(gasto[i]) : String(gasto[i]) + ",";
     frecuencia[i] = 0;
   }
-  // Serial.println(data);
+  Serial.println("#," + data);
   data = "";
 }
 
@@ -151,9 +152,9 @@ void revisar_secciones() {
   }
   // Condicion para seccion 8: gasto en 4 entre +- gasto en 5, gasto en 5 entre +- gasto en 4
 
-  if (!((gasto[2] / 2 > (gasto[4] - 2)) && (gasto[2] / 2 < (gasto[4] + 2)))) {
-    problema_en_seccion[7] = true;
-  }
+  //if (!((gasto[2] / 2 > (gasto[4] - 2)) && (gasto[2] / 2 < (gasto[4] + 2)))) {
+    //problema_en_seccion[7] = true;
+  //}
 }
 
 void resolver_problemas() {
@@ -167,7 +168,8 @@ void resolver_problemas() {
     cerrar_valvula(2, true);
   }
   if (problema_en_seccion[3]) {
-    cerrar_valvula(5, true);
+    if (gasto[3] < gasto[4])
+      cerrar_valvula(5, true);
   }
   if (problema_en_seccion[4]) {
     cerrar_valvula(3, true);
@@ -180,7 +182,7 @@ void resolver_problemas() {
     cerrar_valvula(7, true);
   }
   if (problema_en_seccion[7]) {
-    cerrar_valvula(3, true);
+    //cerrar_valvula(3, true);
     //cerrar_valvula(4, true);
   }
   //delay(5000);
