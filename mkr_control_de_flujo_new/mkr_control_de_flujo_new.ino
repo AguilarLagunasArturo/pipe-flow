@@ -15,7 +15,7 @@ int relevador[relevadores] = { 2,  3,  10, 11, 12, 13, 14, 16};
 
 // Limites de cada sensor.
 float gasto_minimo[sensores] = {
-  13, 5, 5, 2, 2, 7, 6
+  12, 5, 5, 2, 2, 6, 6
   // 14, 5, 5, 2, 2, 8, 7
 };
 
@@ -96,7 +96,7 @@ void setup() {
     cerrar_valvula(i, false);
   }
 
-  checar_relevadores();
+  //checar_relevadores();
   esperar(8);
 
   // Se inicializa el servidor web
@@ -117,14 +117,13 @@ void loop() {
   tiempo_actual = millis();
   // Calcula el flujo (L/min) cada segundo
   if (tiempo_actual >= (tiempo_auxiliar + 1000)) {
+    tiempo_auxiliar = tiempo_actual; // <-- Antes estaba al inicio del if
     // Se calcula el gasto obtenido en por sensor
     calcular_gasto();
     // Se revisan que no haya problema en ninguna seccion
     revisar_secciones();
     // Se reparan los problemas en cada seccion
     resolver_problemas();
-
-    tiempo_auxiliar = tiempo_actual; // <-- Antes estaba al inicio del if
   }
   // Se crea pagina web
   //web_page();
@@ -153,7 +152,7 @@ void revisar_secciones() {
   // Condicion para seccion 8: gasto en 4 entre +- gasto en 5, gasto en 5 entre +- gasto en 4
 
   //if (!((gasto[2] / 2 > (gasto[4] - 2)) && (gasto[2] / 2 < (gasto[4] + 2)))) {
-    //problema_en_seccion[7] = true;
+  //problema_en_seccion[7] = true;
   //}
 }
 
@@ -168,8 +167,9 @@ void resolver_problemas() {
     cerrar_valvula(2, true);
   }
   if (problema_en_seccion[3]) {
-    if (gasto[3] < gasto[4])
+    if (gasto[3] < gasto[4]) {
       cerrar_valvula(5, true);
+    }
   }
   if (problema_en_seccion[4]) {
     cerrar_valvula(3, true);
@@ -185,20 +185,31 @@ void resolver_problemas() {
     //cerrar_valvula(3, true);
     //cerrar_valvula(4, true);
   }
-  //delay(5000);
   //asignar_gasto_minimo();
 }
 
 void reset() {
   Serial.println("Reset.");
+  esperar(5);
+  for (int i = 0; i < relevadores; i++) {
+    if (valvula_cerrada[i]) {
+      //cerrar_valvula(i, false);
+      digitalWrite(relevador[i], HIGH);
+      valvula_cerrada[i] = false;
+      //
+      //Serial.println("Valvula " + String(i + 1) + " abierta.");
+    }
+
+    //if (i < sensores) frecuencia[i] = 0;
+  }
+  esperar(5);
   for (int i = 0; i < relevadores; i++) {
     problema_en_seccion[i] = false;
-    cerrar_valvula(i, false);
-    if (i < sensores) frecuencia[i] = 0;
+    frecuencia[i] = 0;
   }
-  delay(5000);
   tiempo_actual = millis();
-  tiempo_auxiliar = 0;
+  tiempo_auxiliar = tiempo_actual;
+  Serial.println("End reset.");
 }
 
 void cerrar_valvula(int id, boolean cerrar) {
@@ -214,6 +225,7 @@ void cerrar_valvula(int id, boolean cerrar) {
       digitalWrite(relevador[id], LOW);
       valvula_cerrada[id] = true;
       Serial.println("Valvula " + String(id + 1) + " cerrada.");
+      reset();
     }
   }
 
@@ -267,7 +279,9 @@ void leer_serial() {
     command.trim();
     // Imprime resultado
     //Serial.println(serial_byte, DEC);
-    if(command == "r") {reset();};
+    if (command == "r") {
+      reset();
+    };
   }
 }
 
